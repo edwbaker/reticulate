@@ -1,5 +1,13 @@
 # reticulate (development version)
 
+- Fixed `virtualenv_install()` failing with `the condition has length > 1` when
+  the environment's pip could not report its version. `pip_version()` now reads
+  the exit status of its probe and ignores anything the interpreter writes to
+  stderr, so a failed probe reports the same placeholder version as a missing
+  interpreter and pip is reinstalled. An environment whose pip had lost its
+  top-level files, and so imported as a namespace package with no
+  `__version__`, hit this.
+
 - Fixed an error while formatting a long Python exception message. A message
   whose first two lines already exceeded `getOption("warning.length")` made the
   truncation index past the end of the string, so the R error became
