@@ -9,15 +9,30 @@ pip_version <- function(python) {
 
   # otherwise, ask pip what version it is
   command <- "import sys; import pip; sys.stdout.write(pip.__version__)"
-  version <- system2(python, c("-c", shQuote(command)), stdout = TRUE, stderr = TRUE)
+  version <- tryCatch(
+    suppressWarnings(
+      system2(python, c("-c", shQuote(command)), stdout = TRUE, stderr = FALSE)
+    ),
+    # system2() errors, rather than warns, if the interpreter cannot be run
+    error = function(e) structure(character(), status = 1L)
+  )
+
+  # a probe that failed, or that wrote anything other than the version, tells
+  # us nothing about pip; report the placeholder version so that callers
+  # reinstall pip rather than act on a version we never read
+  status <- attr(version, "status") %||% 0L
+  if (status != 0L || length(version) != 1L)
+    return(numeric_version("0.0"))
 
   # remove any beta components from version string
-  idx <- regexpr("[[:alpha:]]", version)
-  if (idx != -1)
-    version <- substring(version, 1, idx - 1)
+  version <- sub("[[:alpha:]].*$", "", version)
 
   # construct numeric version
-  numeric_version(version)
+  version <- numeric_version(version, strict = FALSE)
+  if (is.na(version))
+    numeric_version("0.0")
+  else
+    version
 
 }
 
